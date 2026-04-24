@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BudgetU — Student Budget Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+</head>
+<body data-theme="light">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="logo-icon">₱</span>
+      <span class="logo-text">BudgetU</span>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-export" id="exportBtn" title="Export CSV">
+        <i class="fas fa-download"></i> Export
+      </button>
+      <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">
+        <i class="fas fa-moon" id="themeIcon"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ALERT BANNER -->
+  <div class="alert-banner" id="alertBanner" style="display:none;">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span id="alertMsg">Alert</span>
+    <button onclick="document.getElementById('alertBanner').style.display='none'"><i class="fas fa-times"></i></button>
+  </div>
+
+  <!-- MAIN LAYOUT -->
+  <main class="main-layout">
+
+    <!-- LEFT: Dashboard -->
+    <section class="dashboard-col">
+
+      <!-- Budget Card -->
+      <div class="card budget-card">
+        <div class="card-header">
+          <h2>Monthly Budget</h2>
+          <div class="budget-actions">
+            <button class="btn-set-budget" id="openBudgetModal">
+              <i class="fas fa-wallet"></i> Set Budget
+            </button>
+            <button class="btn-reset" id="resetBudget" title="Reset Budget">
+              <i class="fas fa-rotate-left"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Budget Presets -->
+        <div class="budget-presets" id="budgetPresets" style="display:none;">
+          <p class="preset-label">Quick Setup:</p>
+          <div class="preset-buttons">
+            <button class="preset-btn" onclick="setQuickBudget(1500)">₱1,500</button>
+            <button class="preset-btn" onclick="setQuickBudget(3000)">₱3,000</button>
+            <button class="preset-btn" onclick="setQuickBudget(5000)">₱5,000</button>
+          </div>
+        </div>
+
+        <div class="budget-display">
+          <div class="budget-amount-row">
+            <div class="budget-stat">
+              <span class="stat-label">Total Budget</span>
+              <span class="stat-value" id="totalBudget">₱0.00</span>
+            </div>
+            <div class="budget-stat highlight">
+              <span class="stat-label">Remaining</span>
+              <span class="stat-value" id="remainingBudget">₱0.00</span>
+            </div>
+            <div class="budget-stat danger">
+              <span class="stat-label">Spent</span>
+              <span class="stat-value" id="totalSpent">₱0.00</span>
+            </div>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+            <span class="progress-label" id="progressLabel">0% used</span>
+          </div>
+
+          <!-- Spending Rate & Days Left -->
+          <div class="budget-meta">
+            <div class="meta-item">
+              <span class="meta-label">Daily Average</span>
+              <span class="meta-value" id="dailyAverage">₱0.00</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Days Left</span>
+              <span class="meta-value" id="daysLeft">-</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Savings</span>
+              <span class="meta-value success" id="savingsAmount">₱0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Chart -->
+      <div class="card chart-card">
+        <h2>Spending by Category</h2>
+        <div class="category-bars" id="categoryBars">
+          <p class="empty-msg">No expenses yet.</p>
+        </div>
+      </div>
+
+      <!-- Daily Breakdown -->
+      <div class="card breakdown-card">
+        <div class="card-header">
+          <h2>Daily Breakdown</h2>
+          <div class="view-toggle">
+            <button class="toggle-btn active" id="toggleDaily" onclick="setBreakdownView('daily')">Daily</button>
+            <button class="toggle-btn" id="toggleWeekly" onclick="setBreakdownView('weekly')">Weekly</button>
+          </div>
+        </div>
+        <div class="breakdown-list" id="breakdownList">
+          <p class="empty-msg">No expenses recorded.</p>
+        </div>
+      </div>
+
+      <!-- Top Spending Category -->
+      <div class="card top-category-card">
+        <h2>Top Spending Category</h2>
+        <div class="top-cat-widget" id="topCategoryWidget">
+          <p class="empty-msg">No expenses yet.</p>
+        </div>
+      </div>
+
+      <!-- Income & Expenses Overview -->
+      <div class="card income-card">
+        <h2><i class="fas fa-arrow-up-arrow-down"></i> Income vs Expenses</h2>
+        <div class="income-form">
+          <div class="form-group">
+            <label>Add Income (₱)</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="number" id="incomeAmount" placeholder="e.g. 5000" min="0" step="0.01" style="flex:1;"/>
+              <button class="btn-add-income" id="addIncomeBtn"><i class="fas fa-plus"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="income-stats">
+          <div class="income-stat">
+            <span class="stat-label">Total Income</span>
+            <span class="stat-value income" id="totalIncome">₱0.00</span>
+          </div>
+          <div class="income-stat">
+            <span class="stat-label">Net Balance</span>
+            <span class="stat-value" id="netBalance">₱0.00</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Add Expense + History -->
+    <section class="right-col">
+
+      <!-- Quick Add Buttons -->
+      <div class="card quick-add-card">
+        <h2><i class="fas fa-bolt"></i> Quick Add</h2>
+        <div class="quick-add-buttons">
+          <button class="quick-btn" onclick="quickAddExpense(150, 'Food', 'Lunch')">
+            <i class="fas fa-utensils"></i>
+            <span>Lunch<br><small>₱150</small></span>
+          </button>
+          <button class="quick-btn" onclick="quickAddExpense(50, 'Food', 'Coffee')">
+            <i class="fas fa-mug-hot"></i>
+            <span>Coffee<br><small>₱50</small></span>
+          </button>
+          <button class="quick-btn" onclick="quickAddExpense(40, 'Transport', 'Jeepney')">
+            <i class="fas fa-bus"></i>
+            <span>Transport<br><small>₱40</small></span>
+          </button>
+          <button class="quick-btn" onclick="quickAddExpense(100, 'Leisure', 'Snack')">
+            <i class="fas fa-popcorn"></i>
+            <span>Snack<br><small>₱100</small></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Add Expense Form -->
+      <div class="card form-card">
+        <h2><i class="fas fa-plus-circle"></i> Add Expense</h2>
+        <div class="expense-form">
+          <div class="form-group">
+            <label>Amount (₱)</label>
+            <input type="number" id="expenseAmount" placeholder="e.g. 150" min="0" step="0.01"/>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <div class="category-picker" id="categoryPicker">
+              <button class="cat-btn active" data-cat="Food"><i class="fas fa-utensils"></i> Food</button>
+              <button class="cat-btn" data-cat="Transport"><i class="fas fa-bus"></i> Transport</button>
+              <button class="cat-btn" data-cat="School"><i class="fas fa-book"></i> School</button>
+              <button class="cat-btn" data-cat="Leisure"><i class="fas fa-gamepad"></i> Leisure</button>
+              <button class="cat-btn" data-cat="Others"><i class="fas fa-ellipsis"></i> Others</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Note (optional)</label>
+            <input type="text" id="expenseNote" placeholder="e.g. Jollibee lunch"/>
+          </div>
+          <button class="btn-add" id="addExpenseBtn">
+            <i class="fas fa-check"></i> Add Expense
+          </button>
+        </div>
+      </div>
+
+      <!-- Expense History -->
+      <div class="card history-card">
+        <div class="card-header">
+          <h2><i class="fas fa-clock-rotate-left"></i> History</h2>
+          <div class="filter-row">
+            <select id="filterCategory">
+              <option value="All">All Categories</option>
+              <option>Food</option>
+              <option>Transport</option>
+              <option>School</option>
+              <option>Leisure</option>
+              <option>Others</option>
+            </select>
+            <input type="date" id="filterDate"/>
+          </div>
+        </div>
+        <div class="history-list" id="historyList">
+          <p class="empty-msg">No expenses yet.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- BUDGET MODAL -->
+  <div class="modal-overlay" id="budgetModal">
+    <div class="modal-box">
+      <button class="modal-close" id="closeBudgetModal"><i class="fas fa-times"></i></button>
+      <div class="modal-icon">₱</div>
+      <h3>Set Monthly Budget</h3>
+      <p>Enter the amount you plan to spend this month.</p>
+      <input type="number" id="budgetInput" placeholder="e.g. 3000" min="0" step="0.01"/>
+      <button class="btn-confirm" id="confirmBudget">Confirm Budget</button>
+    </div>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+      <button class="modal-close" id="closeEditModal"><i class="fas fa-times"></i></button>
+      <div class="modal-icon"><i class="fas fa-pen"></i></div>
+      <h3>Edit Expense</h3>
+      <input type="hidden" id="editId"/>
+      <div class="form-group">
+        <label>Amount (₱)</label>
+        <input type="number" id="editAmount" placeholder="Amount" min="0" step="0.01"/>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="editCategory">
+          <option>Food</option><option>Transport</option>
+          <option>School</option><option>Leisure</option><option>Others</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Note</label>
+        <input type="text" id="editNote" placeholder="Note"/>
+      </div>
+      <button class="btn-confirm" id="confirmEdit">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

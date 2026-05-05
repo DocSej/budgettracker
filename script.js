@@ -1,4 +1,4 @@
-// ============================================================
+    // ============================================================
 //  BudgetU — Student Budget & Expense Tracker
 //  app.js
 // ============================================================
@@ -6,9 +6,12 @@
 // ---------- STATE ----------
 let state = {
   budget: 0,
+  budgetPeriod: 'monthly',
   expenses: [],
   income: [],
 };
+
+let currentViewDate = new Date();
 
 let breakdownView = 'daily';
 
@@ -21,11 +24,11 @@ const CAT_ICONS = {
 };
 
 const CAT_COLORS = {
-  Food: '#ff0080',
-  Transport: '#00ffff',
-  School: '#ff00ff',
-  Leisure: '#00ff88',
-  Others: '#ffff00',
+  Food: '#0A3D91',
+  Transport: '#1e73be',
+  School: '#4285f4',
+  Leisure: '#5c9eff',
+  Others: '#7bb3ff',
 };
 
 // ---------- LOAD / SAVE ----------
@@ -63,6 +66,46 @@ function getDaysLeftInMonth() {
   const today = new Date();
   const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   return Math.max(0, lastDay.getDate() - today.getDate() + 1);
+}
+
+function getPeriodDaysLeft() {
+  const period = state.budgetPeriod;
+  if (period === 'daily') return 1;
+  if (period === 'weekly') {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysUntilSunday = (7 - dayOfWeek) % 7 || 7;
+    return daysUntilSunday + 1;
+  }
+  return getDaysLeftInMonth();
+}
+
+function getBudgetLabel() {
+  const period = state.budgetPeriod;
+  if (period === 'daily') return 'Daily';
+  if (period === 'weekly') return 'Weekly';
+  return 'Monthly';
+}
+
+function navigateMonth(direction) {
+  currentViewDate.setMonth(currentViewDate.getMonth() + direction);
+  updateMonthLabel();
+  updateDashboard();
+}
+
+function updateMonthLabel() {
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthYear = monthNames[currentViewDate.getMonth()] + ' ' + currentViewDate.getFullYear();
+  document.getElementById('currentMonthLabel').textContent = monthYear;
+}
+
+function getExpensesForCurrentMonth() {
+  const month = currentViewDate.getMonth();
+  const year = currentViewDate.getFullYear();
+  return state.expenses.filter(e => {
+    const d = new Date(e.date);
+    return d.getMonth() === month && d.getFullYear() === year;
+  });
 }
 
 function generateId() {
@@ -117,9 +160,13 @@ function updateDashboard() {
   const income = totalIncomeAmount();
   const remaining = state.budget - spent;
   const pct = state.budget > 0 ? Math.min((spent / state.budget) * 100, 100) : 0;
-  const daysLeft = getDaysLeftInMonth();
-  const dailyAvg = daysLeft > 0 ? spent / (30 - daysLeft + 1) : 0;
+  const daysLeft = getPeriodDaysLeft();
+  const periodSpan = state.budgetPeriod === 'daily' ? 1 : (state.budgetPeriod === 'weekly' ? 7 : 30);
+  const dailyAvg = daysLeft > 0 ? spent / (periodSpan - daysLeft + 1) : 0;
   const savings = income - spent;
+
+  // Update budget label
+  document.getElementById('budgetPeriodLabel').textContent = getBudgetLabel();
 
   // Update budget display
   document.getElementById('totalBudget').textContent = formatPeso(state.budget);
@@ -139,25 +186,68 @@ function updateDashboard() {
 
   // Update budget meta
   document.getElementById('dailyAverage').textContent = formatPeso(dailyAvg);
-  document.getElementById('daysLeft').textContent = daysLeft > 0 ? daysLeft + ' days' : 'Month ended';
+  const daysLeftLabel = state.budgetPeriod === 'daily' ? (daysLeft > 0 ? '0 days' : 'Today ended') : 
+                        (state.budgetPeriod === 'weekly' ? (daysLeft > 0 ? daysLeft + ' days' : 'Week ended') :
+                         (daysLeft > 0 ? daysLeft + ' days' : 'Month ended'));
+  document.getElementById('daysLeft').textContent = daysLeftLabel;
   document.getElementById('savingsAmount').textContent = formatPeso(Math.max(savings, 0));
 
   // Update income
   document.getElementById('totalIncome').textContent = formatPeso(income);
   document.getElementById('netBalance').textContent = formatPeso(savings);
-
-  // Toggle budget presets visibility
-  const presets = document.getElementById('budgetPresets');
-  if (state.budget === 0) {
-    presets.style.display = 'block';
-  } else {
-    presets.style.display = 'none';
-  }
-
+  
+  // Update summary statistics
+  updateSummaryStats(spent);
+  
   updateCategoryChart();
   updateBreakdown();
   updateTopCategory();
   checkAlerts();
+}
+
+// ---------- SUMMARY STATISTICS ----------
+function updateSummaryStats(spent) {
+  const monthExpenses = getExpensesForCurrentMonth();
+  const totals = {};
+  monthExpenses.forEach(e => {
+    totals[e.category] = (totals[e.category] || 0) + Number(e.amount);
+  });
+  
+  // Find highest spending category
+  let highestCat = '-';
+  let highestAmount = 0;
+  for (const [cat, amount] of Object.entries(totals)) {
+    if (amount > highestAmount) {
+      highestAmount = amount;
+      highestCat = cat + ': ' + formatPeso(amount);
+    }
+  }
+  document.getElementById('highestCategory').textContent = highestCat;
+  
+  // Total expenses count
+  document.getElementById('totalExpenseCount').textContent = monthExpenses.length;
+  
+  // Average per day
+  const daysInMonth = new Date(currentViewDate.getFullYear(), currentViewDate.getMonth() + 1, 0).getDate();
+  const avgDay = spent / daysInMonth;
+  document.getElementById('avgPerDay').textContent = formatPeso(avgDay);
+  
+  // Budget health
+  let health = 'Good';
+  let healthClass = 'health-good';
+  if (state.budget > 0) {
+    const pct = (spent / state.budget) * 100;
+    if (pct > 100) {
+      health = '⚠️ Over';
+      healthClass = 'health-danger';
+    } else if (pct > 75) {
+      health = '⚡ At Risk';
+      healthClass = 'health-warning';
+    }
+  }
+  const healthEl = document.getElementById('budgetHealth');
+  healthEl.textContent = health;
+  healthEl.className = 'health-status ' + healthClass;
 }
 
 // ---------- CATEGORY CHART ----------
@@ -330,29 +420,18 @@ function updateTopCategory() {
 }
 
 // ---------- QUICK BUDGET --------
-function setQuickBudget(amount) {
-  state.budget = amount;
+function setBudgetPeriod(period) {
+  state.budgetPeriod = period;
   saveState();
+  
+  // Update button states
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  document.querySelector(`[data-period="${period}"]`).classList.add('active');
+  
   updateDashboard();
-  showToast(`💰 Budget set to ${formatPeso(amount)}!`);
-}
-
-// ---------- QUICK ADD EXPENSE --------
-function quickAddExpense(amt, cat, note) {
-  const expense = {
-    id: generateId(),
-    amount: amt,
-    category: cat,
-    note: note,
-    date: today(),
-    timestamp: Date.now(),
-  };
-
-  state.expenses.push(expense);
-  saveState();
-  updateDashboard();
-  renderHistory();
-  showToast(`✅ ${note} added!`);
+  showToast(`Budget period set to ${period.charAt(0).toUpperCase() + period.slice(1)}`);
 }
 
 // ---------- BREAKDOWN VIEW --------
@@ -380,7 +459,40 @@ document.getElementById('addIncomeBtn').addEventListener('click', () => {
   updateDashboard();
   showToast(`💵 Income added: ${formatPeso(amt)}`);
   document.getElementById('incomeAmount').value = '';
+  renderIncomeList();
 });
+
+// Delete income entry
+function deleteIncome(id) {
+  if (!confirm('Delete this income entry?')) return;
+  state.income = state.income.filter(i => i.id !== id);
+  saveState();
+  updateDashboard();
+  renderIncomeList();
+  showToast('💔 Income entry deleted');
+}
+
+// Render income list
+function renderIncomeList() {
+  const container = document.getElementById('incomeList');
+  if (!state.income || state.income.length === 0) {
+    container.parentElement.style.display = 'none';
+    return;
+  }
+  
+  container.parentElement.style.display = 'block';
+  container.innerHTML = state.income.map(inc => `
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px;">
+      <div>
+        <strong>${formatPeso(inc.amount)}</strong>
+        <span style="color: var(--text-muted); margin-left: 6px;">${formatDate(inc.date)}</span>
+      </div>
+      <button style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 12px; padding: 4px 8px;" onclick="deleteIncome('${inc.id}')">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `).join('');
+}
 
 // ---------- ADD EXPENSE ----------
 let selectedCategory = 'Food';
@@ -525,7 +637,7 @@ themeToggle.addEventListener('click', () => {
 });
 
 // Load saved theme
-const savedTheme = localStorage.getItem('budgetu_theme') || 'dark';
+const savedTheme = localStorage.getItem('budgetu_theme') || 'light';
 applyTheme(savedTheme);
 
 // ---------- EXPORT CSV ----------
@@ -562,5 +674,18 @@ document.addEventListener('keydown', e => {
 
 // ---------- INIT ----------
 loadState();
+
+// Initialize period buttons
+const activePeriod = state.budgetPeriod || 'monthly';
+document.querySelectorAll('.period-btn').forEach(btn => {
+  if (btn.getAttribute('data-period') === activePeriod) {
+    btn.classList.add('active');
+  } else {
+    btn.classList.remove('active');
+  }
+});
+
+updateMonthLabel();
 updateDashboard();
 renderHistory();
+renderIncomeList();

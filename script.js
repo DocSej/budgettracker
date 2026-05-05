@@ -621,24 +621,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 document.getElementById('filterCategory').addEventListener('change', renderHistory);
 document.getElementById('filterDate').addEventListener('change', renderHistory);
 
-// ---------- THEME TOGGLE ----------
-const themeToggle = document.getElementById('themeToggle');
-const themeIcon = document.getElementById('themeIcon');
 
-function applyTheme(theme) {
-  document.body.setAttribute('data-theme', theme);
-  themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-  localStorage.setItem('budgetu_theme', theme);
-}
-
-themeToggle.addEventListener('click', () => {
-  const current = document.body.getAttribute('data-theme');
-  applyTheme(current === 'dark' ? 'light' : 'dark');
-});
-
-// Load saved theme
-const savedTheme = localStorage.getItem('budgetu_theme') || 'light';
-applyTheme(savedTheme);
 
 // ---------- EXPORT CSV ----------
 document.getElementById('exportBtn').addEventListener('click', () => {

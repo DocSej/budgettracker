@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BudgetU — Student Budget Tracker</title>
+  <title>University of Cebu CPE Budget Tracker</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
@@ -13,8 +13,8 @@
   <!-- NAVBAR -->
   <nav class="navbar">
     <div class="nav-brand">
-      <span class="logo-icon">₱</span>
-      <span class="logo-text">BudgetU</span>
+      <span class="logo-icon"><i class="fas fa-university"></i></span>
+      <span class="logo-text">University of Cebu – CPE Budget Tracker</span>
     </div>
     <div class="nav-actions">
       <button class="btn-export" id="exportBtn" title="Export CSV">
@@ -42,7 +42,7 @@
       <!-- Budget Card -->
       <div class="card budget-card">
         <div class="card-header">
-          <h2>Monthly Budget</h2>
+          <h2><span id="budgetPeriodLabel">Monthly</span> Budget</h2>
           <div class="budget-actions">
             <button class="btn-set-budget" id="openBudgetModal">
               <i class="fas fa-wallet"></i> Set Budget
@@ -53,13 +53,13 @@
           </div>
         </div>
 
-        <!-- Quick Budget Presets -->
-        <div class="budget-presets" id="budgetPresets" style="display:none;">
-          <p class="preset-label">Quick Setup:</p>
-          <div class="preset-buttons">
-            <button class="preset-btn" onclick="setQuickBudget(1500)">₱1,500</button>
-            <button class="preset-btn" onclick="setQuickBudget(3000)">₱3,000</button>
-            <button class="preset-btn" onclick="setQuickBudget(5000)">₱5,000</button>
+        <!-- Budget Period Selector -->
+        <div class="budget-period-selector">
+          <label>Budget Period:</label>
+          <div class="period-buttons">
+            <button class="period-btn active" data-period="daily" onclick="setBudgetPeriod('daily')">Daily</button>
+            <button class="period-btn" data-period="weekly" onclick="setBudgetPeriod('weekly')">Weekly</button>
+            <button class="period-btn" data-period="monthly" onclick="setBudgetPeriod('monthly')">Monthly</button>
           </div>
         </div>
 
@@ -101,6 +101,42 @@
               <span class="meta-value success" id="savingsAmount">₱0.00</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Summary Statistics Card -->
+      <div class="card summary-card">
+        <h2><i class="fas fa-chart-pie"></i> Quick Stats</h2>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <label>Highest Spend</label>
+            <span id="highestCategory" class="stat-highlight">-</span>
+          </div>
+          <div class="stat-box">
+            <label>Total Expenses</label>
+            <span id="totalExpenseCount">0</span>
+          </div>
+          <div class="stat-box">
+            <label>Avg Per Day</label>
+            <span id="avgPerDay">₱0</span>
+          </div>
+          <div class="stat-box">
+            <label>Budget Health</label>
+            <span id="budgetHealth" class="health-good">Good</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Month Navigator -->
+      <div class="card month-nav-card">
+        <div class="month-navigator">
+          <button class="month-btn" id="prevMonth" onclick="navigateMonth(-1)" title="Previous month">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span id="currentMonthLabel" class="month-label">May 2026</span>
+          <button class="month-btn" id="nextMonth" onclick="navigateMonth(1)" title="Next month">
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
 
@@ -161,29 +197,6 @@
 
     <!-- RIGHT: Add Expense + History -->
     <section class="right-col">
-
-      <!-- Quick Add Buttons -->
-      <div class="card quick-add-card">
-        <h2><i class="fas fa-bolt"></i> Quick Add</h2>
-        <div class="quick-add-buttons">
-          <button class="quick-btn" onclick="quickAddExpense(150, 'Food', 'Lunch')">
-            <i class="fas fa-utensils"></i>
-            <span>Lunch<br><small>₱150</small></span>
-          </button>
-          <button class="quick-btn" onclick="quickAddExpense(50, 'Food', 'Coffee')">
-            <i class="fas fa-mug-hot"></i>
-            <span>Coffee<br><small>₱50</small></span>
-          </button>
-          <button class="quick-btn" onclick="quickAddExpense(40, 'Transport', 'Jeepney')">
-            <i class="fas fa-bus"></i>
-            <span>Transport<br><small>₱40</small></span>
-          </button>
-          <button class="quick-btn" onclick="quickAddExpense(100, 'Leisure', 'Snack')">
-            <i class="fas fa-popcorn"></i>
-            <span>Snack<br><small>₱100</small></span>
-          </button>
-        </div>
-      </div>
 
       <!-- Add Expense Form -->
       <div class="card form-card">
